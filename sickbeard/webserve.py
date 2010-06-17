@@ -978,7 +978,7 @@ class HomeAddShows:
         myTemplate.submenu    = HomeMenu
         myTemplate.resultList = None
         myTemplate.showName   = showName or os.path.split(showDir[0])[1]
-        myTemplate.showDir    = [urllib.quote_plus(x) for x in showDir]
+        myTemplate.showDir    = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
         
         # if no showDir then start at the beginning
         if showDir == None:
@@ -989,7 +989,7 @@ class HomeAddShows:
             logger.log("Getting list of possible shows and asking user to choose one", logger.DEBUG)
             try:
                 t = tvdb_api.Tvdb(custom_ui=TVDBWebUI, **sickbeard.TVDB_API_PARMS)
-                t.config['_showDir'] = [urllib.quote_plus(x) for x in showDir]
+                t.config['_showDir'] = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
                 s = t[showName] # this will throw a cherrypy exception
             except tvdb_exceptions.tvdb_shownotfound:
                 flash.error("Couldn't find that show on theTVDB. Try a more general search.")
@@ -1019,7 +1019,7 @@ class HomeAddShows:
             except exceptions.NoNFOException:
                 logger.log("The show queue said we need to create an NFO for this show", logger.DEBUG)
                 myTemplate.resultList = []
-                myTemplate.showDir = [urllib.quote_plus(x) for x in showDir]
+                myTemplate.showDir = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
                 return _munge(myTemplate)
             except exceptions.MultipleShowObjectsException:
                 # showAdded is already false so we can pass this exception and deal with the redirect below
@@ -1039,7 +1039,7 @@ class HomeAddShows:
 
             # if we have at least one show left to add then redirect
             else:
-                newCallList = [urllib.quote_plus(x) for x in showDir]
+                newCallList = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
                 logger.log("There are still shows left to add, so recursively calling myself with showDir="+str(newCallList))
                 return self.addShow(newCallList)
                                     
@@ -1065,7 +1065,7 @@ class HomeAddShows:
             #url ="addShow?"+ "&".join(["showDir="+urllib.quote_plus(x) for x in showDir])
             #logger.log("Redirecting to "+url, logger.DEBUG)
             #raise cherrypy.HTTPRedirect(url)
-            newCallList = [urllib.quote_plus(x) for x in showDir]
+            newCallList = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
             logger.log("We now have an NFO for the show, so recursively calling myself with showDir="+str(newCallList))
             a = self.addShow(newCallList)
             #logger.log("HOW DID WE GET HERE: "+a)
@@ -1093,7 +1093,7 @@ class HomeAddShows:
 
                     if len(showDir) > 1:
                         del showDir[0]
-                        newCallList = [urllib.quote_plus(x) for x in showDir]
+                        newCallList = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
                         logger.log("There are still shows left to add, so recursively calling myself with showDir="+str(newCallList))
                         return self.addShow(newCallList)
                     else:
@@ -1103,7 +1103,7 @@ class HomeAddShows:
                     return self.addShow(showDir, resultList[0])
                     
                 myTemplate.resultList = resultList
-                myTemplate.showDir = [urllib.quote_plus(x) for x in showDir]
+                myTemplate.showDir = [urllib.quote_plus(x.encode('utf-8')) for x in showDir]
             except tvdb_exceptions.tvdb_exception, e:
                 logger.log("Error trying to search shows, skipping show: "+str(e), logger.ERROR)
                 flash.error("TVDB error while trying to add shows, unable to proceed: "+str(e))
@@ -1264,7 +1264,8 @@ class Home:
                 t.submenu.append({ 'title': 'Delete',            'path': 'home/deleteShow?show=%d'%showObj.tvdbid         })
                 t.submenu.append({ 'title': 'Re-scan files',           'path': 'home/refreshShow?show=%d'%showObj.tvdbid         })
                 t.submenu.append({ 'title': 'Force Full Update', 'path': 'home/updateShow?show=%d&force=1'%showObj.tvdbid })
-                t.submenu.append({ 'title': 'Update show in XBMC', 'path': 'home/updateXBMC?showName=%s'%urllib.quote_plus(showObj.name), 'requires': haveXBMC })
+                t.submenu.append({ 'title': 'Update show in XBMC', 'path': 'home/updateXBMC?showName=%s'%urllib.quote_plus(showObj.name.encode('utf-8')), 'requires': haveXBMC })
+                t.submenu.append({ 'title': 'Update Show infos from TVDB', 'path': 'home/updateTVDB?show=%d'%showObj.tvdbid })
             t.submenu.append({ 'title': 'Rename Episodes',   'path': 'home/fixEpisodeNames?show=%d'%showObj.tvdbid        })
         
         t.show = showObj
@@ -1298,7 +1299,7 @@ class Home:
         return result['description'] if result else 'Episode not found.'
 
     @cherrypy.expose
-    def editShow(self, show=None, location=None, anyQualities=[], bestQualities=[], seasonfolders=None, paused=None, directCall=False):
+    def editShow(self, show=None, location=None, anyQualities=[], bestQualities=[], seasonfolders=None, paused=None, directCall=False, language=None):
         
         if show == None:
             errString = "Invalid show ID: "+str(show)
@@ -1354,6 +1355,8 @@ class Home:
                     errors.append("Unable to refresh this show: "+str(e))
 
             showObj.paused = paused
+
+            showObj.language = int(language)
                         
             # if we change location clear the db of episodes, change it, write to db, and rescan
             if os.path.normpath(showObj._location) != os.path.normpath(location):
@@ -1374,6 +1377,7 @@ class Home:
                     except exceptions.NoNFOException:
                         errors.append("The folder at <tt>%s</tt> doesn't contain a tvshow.nfo - copy your files to that folder before you change the directory in Sick Beard." % location)
                     
+            showObj.loadNFO()
             # save it to the DB
             showObj.saveToDB()
 
@@ -1462,6 +1466,23 @@ class Home:
                 flash.error("Unable to contact XBMC host " + curHost)
         redirect('/home')
 
+    @cherrypy.expose
+    def updateTVDB(self, show=None):
+        if show == None:
+            return _genericMessage("Error", "Invalid show ID")
+        
+        showObj = sickbeard.helpers.findCertainShow(sickbeard.showList, int(show))
+        
+        if showObj == None:
+            return _genericMessage("Error", "Unable to find the specified show")
+
+        helpers.makeShowNFO(show, showObj.location)
+	showObj.loadNFO()
+        
+        # just give it some time
+        time.sleep(3)
+        
+        redirect("/home/displayShow?show="+str(showObj.tvdbid))
 
     @cherrypy.expose
     def fixEpisodeNames(self, show=None):
@@ -1534,6 +1555,57 @@ class Home:
                         continue
 
                     epObj.status = int(status)
+                    epObj.saveToDB()
+                    
+        if direct:
+            return json.dumps({'result': 'success'})
+        else:
+            redirect("/home/displayShow?show=" + show)
+
+    @cherrypy.expose
+    def setLanguage(self, show=None, eps=None, lang=None, direct=False):
+        
+        if show == None or eps == None or lang == None:
+            errMsg = "You must specify a show and at least one episode"
+            if direct:
+                flash.error('Error', errMsg)
+                return json.dumps({'result': 'error'})
+            else:
+                return _genericMessage("Error", errMsg)
+        
+        if not int(lang) in languages:
+            errMsg = "Invalid lang"
+            if direct:
+                flash.error('Error', errMsg)
+                return json.dumps({'result': 'error'})
+            else:
+                return _genericMessage("Error", errMsg)
+        
+        showObj = sickbeard.helpers.findCertainShow(sickbeard.showList, int(show))
+
+        if showObj == None:
+            errMsg = "Error", "Show not in show list"
+            if direct:
+                flash.error('Error', errMsg)
+                return json.dumps({'result': 'error'})
+            else:
+                return _genericMessage("Error", errMsg)
+
+        if eps != None:
+
+            for curEp in eps.split('|'):
+
+                logger.log("Attempting to set language on episode "+curEp+" to "+lang, logger.DEBUG)
+
+                epInfo = curEp.split('x')
+
+                epObj = showObj.getEpisode(int(epInfo[0]), int(epInfo[1]))
+            
+                if epObj == None:
+                    return _genericMessage("Error", "Episode couldn't be retrieved")
+            
+                with epObj.lock:
+                    epObj.language = int(lang)
                     epObj.saveToDB()
                     
         if direct:

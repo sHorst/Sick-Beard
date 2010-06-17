@@ -182,6 +182,38 @@ qualityPresetStrings = {SD: "SD",
                         ANY: "Any",
                         BEST: "Best"}
 
+languages = (7,8,9,10,11,13,14,15,16,17,18,19)
+languagesStrings = { 
+    0:"Not Set",
+    10:"Dansk",
+    11:"Suomeksi",
+    13:"Nederlands",
+    14:"Deutsch",
+    15:"Italiano",
+    16:"Espanol",
+    17:"Francais",
+    18:"Polski",
+    19:"Magyar",
+    7:"English",
+    8:"Svenska",
+    9:"Norsk"
+}
+languagesAbrv = {
+    0 : 'en', # set the default to en
+    10: 'da',
+    11: "fi",
+    13: "nl",
+    14: "de",
+    15: "it",
+    16: "es",
+    17: "fr",
+    18: "pl",
+    19: "hu",
+    7:  "en",
+    8:  "sv",
+    9:  "no"
+}
+
 class StatusStrings:
     def __init__(self):
         self.statusStrings = {UNKNOWN: "Unknown",

@@ -4,7 +4,7 @@
 #import os.path, os
 #import datetime
 #set global $title=$show.name
-#set global $header = '<a href="http://thetvdb.com/?tab=series&amp;id=%d" target="_new">%s</a>' % ($show.tvdbid, $show.name)
+#set global $header = '<a href="http://thetvdb.com/?tab=series&amp;id=%d&amp;lid=%d" target="_new">%s</a>' % ($show.tvdbid, $show.language, $show.name)
 
 <!--#set global $topmenu="manageShows"#-->
 #include $os.path.join($sickbeard.PROG_DIR, "data/interfaces/default/inc_top.tmpl")
@@ -51,6 +51,8 @@ Season Folders: <img src="$sbRoot/images/#if $show.seasonfolders == 1 then "yes.
 
 Active: <img src="$sbRoot/images/#if int($show.paused) == 0 then "yes.gif\" alt=\"Y" else "no.gif\" alt=\"N"#" width="16" height="16"><br />
 
+Language: $languagesStrings[int($show.language)]<br />
+
 <br />
 Change selected episodes to 
 <select id="statusSelect">
@@ -63,9 +65,20 @@ Change selected episodes to
 </select>
 <input type="hidden" id="showID" value="$show.tvdbid">
 <input type="button" id="changeStatus" value="Go"><br />
-<br />
+<span style="font-size:xx-small">
 <b>NOTE:</b> Episodes can only be changed to a "Downloaded ..." status if they are already either "Downloaded ..." or "Snatched ..."<br />
 All other statuses will automatically update to the appropriate "Downloaded ..." status on a show refresh.<br />
+</span>
+
+<br />
+Change Language of selected episodes to 
+<select id="languageSelect">
+#for $curLang in $languages:
+<option value="$curLang" #if $curLang == int($show.language) then "SELECTED" else ""#>$languagesStrings[$curLang]
+#end for
+</select>
+<input type="hidden" id="showID" value="$show.tvdbid">
+<input type="button" id="changeLanguage" value="Go"><br />
 
 #set $curSeason = -1
 #set $odd = 0
@@ -91,7 +104,7 @@ All other statuses will automatically update to the appropriate "Downloaded ..."
 	<br />
 	</h2></td>
   </tr>
-  <tr id="season-$epResult["season"]-cols"><th width="1%"><input type="checkbox" class="seasonCheck" id="$epResult["season"]"></th><th>NFO</th><th>TBN</th><th>Episode</th><th>Name</th><th>Airdate</th><th>Filename</th><th>Status</th><th>Actions</th></tr>
+  <tr id="season-$epResult["season"]-cols"><th width="1%"><input type="checkbox" class="seasonCheck" id="$epResult["season"]"></th><th>NFO</th><th>TBN</th><th>Episode</th><th>Name</th><th>Airdate</th><th>Filename</th><th>Status</th><th>Language</th><th>Actions</th></tr>
         #set $curSeason = int($epResult["season"])
     #end if    
 
@@ -114,6 +127,7 @@ All other statuses will automatically update to the appropriate "Downloaded ..."
     <td align="center">#if int($epResult["airdate"]) == 1 then "never" else $datetime.date.fromordinal(int($epResult["airdate"]))#</td>
     <td>$os.path.basename($epResult["location"])</td>
     <td>$statusStrings[int($epResult["status"])]</td>
+    <td align="center">$languagesStrings[int($epResult["lang_id"])]</td>
     <td align="center">
     #if int($epResult["season"]) != 0: 
     <a href="searchEpisode?show=$show.tvdbid&season=$epResult["season"]&episode=$epResult["episode"]">search</a>

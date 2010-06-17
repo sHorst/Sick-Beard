@@ -219,3 +219,20 @@ class DropOldHistoryTable(NewQualitySettings):
 	def execute(self):
 		self.connection.action("DROP TABLE history_old")
 		self.incDBVersion()
+
+class AddLangSupport(DropOldHistoryTable):
+	def test(self):
+		return self.checkDBVersion() >= 3
+
+	def execute(self):
+		self.addColumn("tv_shows","lang_id") # Default Language for this tv show
+		self.addColumn("tv_episodes","lang_id") # Default Language for this tv episode
+
+		queries = [
+			"UPDATE tv_shows SET lang_id = 7 WHERE lang_id = 0;", # set default language to English (tvdb langids are used)
+			"UPDATE tv_episodes SET lang_id = 7 WHERE lang_id = 0;" # set default language to English
+		]
+		for query in queries:
+			self.connection.action(query)
+
+		self.incDBVersion()

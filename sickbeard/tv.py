@@ -68,6 +68,8 @@ class TVShow(object):
         self.startyear = 0
         self.paused = 0
 
+        self.language = 7
+
         self.lock = threading.Lock()
         self._isDirGood = False
         
@@ -288,7 +290,7 @@ class TVShow(object):
             logger.log("TVDB timed out, unable to update episodes from TVDB", logger.ERROR)
             return None
         
-        logger.log(str(self.tvdbid) + ": Loading all episodes from theTVDB...")
+        logger.log(str(self.tvdbid) + ": Loading all episodes from theTVDB with lang %s..."%(languagesAbrv[self.language]))
         
         scannedEps = {}
         
@@ -617,6 +619,12 @@ class TVShow(object):
                 
             if self.tvrid == 0:
                 self.tvrid = int(sqlResults[0]["tvr_id"])
+
+            if (self.language != int(sqlResults[0]["lang_id"])):
+                self.language = int(sqlResults[0]["lang_id"])
+                self.loadNFO() 
+                if self.language == 0:
+                    self.language = 7
     
     def loadFromTVDB(self, cache=True):
 
@@ -697,6 +705,12 @@ class TVShow(object):
             self.genre = showXML.findtext('genre')
         else:
             self.genre = ""
+
+        # set to right language text from the nfo
+        for lang in showXML.findall('language'):
+            if lang.findtext('lang_id') != None and int(lang.findtext('lang_id')) == self.language and lang.findtext('title') != None:
+                self.name = lang.findtext('title')
+
 
         # TODO: need to validate the input, I'm assuming it's good until then
 
@@ -876,7 +890,8 @@ class TVShow(object):
                         "seasonfolders": self.seasonfolders,
                         "paused": self.paused,
                         "startyear": self.startyear,
-                        "tvr_name": self.tvrname
+                        "tvr_name": self.tvrname,
+			"lang_id": self.language
                         }
 
         myDB.upsert("tv_shows", newValueDict, controlValueDict)
@@ -897,6 +912,7 @@ class TVShow(object):
         toReturn += "genre: " + self.genre + "\n"
         toReturn += "runtime: " + str(self.runtime) + "\n"
         toReturn += "quality: " + str(self.quality) + "\n"
+        toReturn += "language: " + str(self.language) + "\n"
         return toReturn
 
         
@@ -990,6 +1006,8 @@ class TVEpisode:
 
         self.tvdbid = 0
 
+        self.language = 0
+
         self.show = show
         self.location = file
         
@@ -1077,6 +1095,11 @@ class TVEpisode:
                 self.location = os.path.normpath(sqlResults[0]["location"])
             
             self.tvdbid = int(sqlResults[0]["tvdbid"])
+
+            self.language = int(sqlResults[0]["lang_id"])
+
+            if self.language == 0:
+                self.language = self.show.language # add language of show, if no language is found
             
             return True
     
@@ -1099,6 +1122,10 @@ class TVEpisode:
 
         try:
             t = tvdb_api.Tvdb(**ltvdb_api_parms)
+            if (self.language == 0):
+                t.config['language'] = languagesAbrv[self.show.language]
+            else:
+                t.config['language'] = languagesAbrv[self.language]
             myEp = t[self.show.tvdbid][season][episode]
         except (tvdb_exceptions.tvdb_error, IOError), e:
             logger.log("TVDB threw up an error: "+str(e), logger.DEBUG)
@@ -1538,6 +1565,7 @@ class TVEpisode:
                         "hasnfo": self.hasnfo,
                         "hastbn": self.hastbn,
                         "status": self.status,
+                        "lang_id": self.language,
                         "location": self.location}
         controlValueDict = {"showid": self.show.tvdbid,
                             "season": self.season,

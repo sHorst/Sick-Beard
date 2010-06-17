@@ -22,6 +22,28 @@ $(document).ready(function(){
 
     });
 
+    $('#changeLanguage').click(function(){
+  
+        var sbRoot = $('#sbRoot').val()
+        var epArr = new Array()
+
+        $('.epCheck').each(function() {
+      
+            if (this.checked == true) {
+                epArr.push($(this).attr('id'))
+            }
+      
+        });  
+
+        if (epArr.length == 0)
+            return false
+
+        url = sbRoot+'/home/setLanguage?show='+$('#showID').attr('value')+'&eps='+epArr.join('|')+'&lang='+$('#languageSelect').attr('value')
+
+        window.location.href = url
+
+    });
+
     $('.seasonCheck').click(function(){
     
         var seasCheck = this;

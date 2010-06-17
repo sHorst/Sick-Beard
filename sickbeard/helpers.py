@@ -218,6 +218,31 @@ def makeShowNFO(showID, showDir):
 		if cur_actor_thumb_text != None:
 			cur_actor_thumb.text = cur_actor_thumb_text
 
+	# load all languages from tvdb
+	for language in languages:
+		t.config['language'] = languagesAbrv[language]
+		t._getShowData(int(showID),languagesAbrv[language])
+
+		myShowLang = t[int(showID)]
+
+		if myShowLang['language'] != languagesAbrv[language]:
+			continue
+
+		cur_lang = etree.SubElement( tvNode, "language" )
+
+		cur_lang_id = etree.SubElement( cur_lang, "lang_id" )
+		cur_lang_id.text = str(language)
+
+	
+		cur_title = etree.SubElement( cur_lang, "title" )
+		if myShowLang["seriesname"] != None:
+			cur_title.text = myShowLang["seriesname"]
+		
+		cur_plot = etree.SubElement( cur_lang, "plot" )
+		if myShowLang["overview"] != None:
+			cur_plot.text = myShowLang["overview"]
+
+
  	logger.log("Writing NFO to "+os.path.join(showDir, "tvshow.nfo"), logger.DEBUG)
 
 
