@@ -1477,7 +1477,7 @@ class Home:
             return _genericMessage("Error", "Unable to find the specified show")
 
         helpers.makeShowNFO(show, showObj.location)
-	showObj.loadNFO()
+        showObj.loadNFO()
         
         # just give it some time
         time.sleep(3)
