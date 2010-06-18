@@ -1096,7 +1096,8 @@ class TVEpisode:
             
             self.tvdbid = int(sqlResults[0]["tvdbid"])
 
-            self.language = int(sqlResults[0]["lang_id"])
+            if sqlResults[0]["lang_id"] != None:
+                self.language = int(sqlResults[0]["lang_id"])
 
             if self.language == 0:
                 self.language = self.show.language # add language of show, if no language is found
