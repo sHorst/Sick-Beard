@@ -27,7 +27,7 @@ import sickbeard
 
 from common import *
 
-from sickbeard import logger, db, sceneHelpers, exceptions
+from sickbeard import logger, db, sceneHelpers, exceptions, helpers
 from sickbeard import sab
 from sickbeard import history
 from sickbeard import notifiers
@@ -235,9 +235,10 @@ def findSeason(show, season):
 
 			# make a list of all the results for this provider
 			for curEp in curResults:
-				# skip non-tv crap
-				curResults[curEp] = filter(lambda x:  sceneHelpers.filterBadReleases(x.name), curResults[curEp])
 				
+				# skip non-tv crap
+				curResults[curEp] = filter(lambda x:  sceneHelpers.filterBadReleases(x.name) and isGoodResult(x, show), curResults[curEp])
+
 				if curEp in foundResults:
 					foundResults[curEp] += curResults[curEp]
 				else:
@@ -300,6 +301,9 @@ def findSeason(show, season):
 
 			# if not, break it apart and add them as the lowest priority results
 			individualResults = nzbSplitter.splitResult(bestSeasonNZB)
+
+			individualResults = filter(lambda x:  sceneHelpers.filterBadReleases(x.name) and isGoodResult(x, show), individualResults)
+
 			for curResult in individualResults:
 				if len(curResult.episodes) == 1:
 					epNum = curResult.episodes[0].episode
@@ -334,7 +338,7 @@ def findSeason(show, season):
 					neededEps.append(epNum)
 	
 			logger.log("Result is neededEps: "+str(neededEps)+", notNeededEps: "+str(notNeededEps), logger.DEBUG)
-	
+
 			if not neededEps:
 				logger.log("All of these episodes were covered by single nzbs, ignoring this multi-ep result", logger.DEBUG)
 				continue
@@ -359,3 +363,23 @@ def findSeason(show, season):
 		finalResults.append(pickBestResult(foundResults[curEp]))
 	
 	return finalResults
+
+
+def isGoodResult(result, show):
+	"""
+	Use an automatically-created regex to make sure the result actually is the show it claims to be
+	"""
+	
+	showNames = map(sceneHelpers.sanitizeSceneName, sceneHelpers.allPossibleShowNames(show))
+	
+	for curName in set(showNames):
+		curRegex = '^' + curName + '.S\d\d'
+		logger.log("Checking if show "+result.name+" matches " + curRegex, logger.DEBUG)
+		
+		match = re.search(curRegex, result.name)
+		
+		if match:
+			return True
+	
+	logger.log("Provider gave result "+result.name+" but that doesn't seem like a valid result for "+show.name+" so I'm ignoring it")
+	return False
