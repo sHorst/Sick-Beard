@@ -109,6 +109,7 @@ Change Language of selected episodes to
     #end if    
 
   #set $epStr = str($epResult["season"]) + "x" + str($epResult["episode"])
+  #set $epLoc = $epResult["location"]
   <tr class="$Overview.overviewStrings[$epCats[$epStr]] season-$curSeason">
     <td width="1%">
 #if int($epResult["status"]) != $UNAIRED
@@ -125,7 +126,14 @@ Change Language of selected episodes to
         #end if
     </td>
     <td align="center">#if int($epResult["airdate"]) == 1 then "never" else $datetime.date.fromordinal(int($epResult["airdate"]))#</td>
-    <td>$os.path.basename($epResult["location"])</td>
+    <td>
+#if $epLoc and $show._location and $epLoc.lower().startswith($show._location.lower()):
+$epLoc[len($show._location)+1:]
+#elif $epLoc and (not $epLoc.lower().startswith($show._location.lower()) or not $show._location):
+$epLoc
+#end if
+
+    </td>
     <td>$statusStrings[int($epResult["status"])]</td>
     <td align="center">$languagesStrings[int($epResult["lang_id"])]</td>
     <td align="center">

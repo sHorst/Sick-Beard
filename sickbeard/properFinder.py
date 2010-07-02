@@ -99,6 +99,10 @@ class ProperFinder():
                 logger.log("Unable to parse the filename "+curProper.name+" into a valid episode", logger.ERROR)
                 continue
     
+            if not epInfo.episodenumbers:
+                logger.log("Ignoring "+curProper.name+" because it's for a full season rather than specific episode", logger.DEBUG)
+                continue
+    
             # populate our Proper instance
             curProper.season = epInfo.seasonnumber
             curProper.episode = epInfo.episodenumbers[0]
@@ -128,6 +132,9 @@ class ProperFinder():
                 # if we found something in the inner for loop break out of this one
                 if curProper.tvdbid != -1:
                     break
+
+            if curProper.tvdbid == -1:
+                continue
 
             # if we have an air-by-date show then get the real season/episode numbers
             if curProper.season == -1 and curProper.tvdbid:
@@ -165,7 +172,7 @@ class ProperFinder():
 
             # make sure the episode has been downloaded before
             myDB = db.DBConnection() 
-            historyResults = myDB.select("SELECT resource FROM history WHERE showid = ? AND season = ? AND episode = ? AND quality = ? AND action IN ("+",".join(common.SNATCHED)+") AND date >= ?",
+            historyResults = myDB.select("SELECT resource FROM history WHERE showid = ? AND season = ? AND episode = ? AND quality = ? AND action IN ("+",".join(Quality.SNATCHED)+") AND date >= ?",
                         [curProper.tvdbid, curProper.season, curProper.episode, curProper.quality, historyLimit.strftime(history.dateFormat)])
              
             # if we didn't download this episode in the first place we don't know what quality to use for the proper so we can't do it
