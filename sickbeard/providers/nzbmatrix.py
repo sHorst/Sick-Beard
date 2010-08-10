@@ -203,7 +203,7 @@ def _doSearch(curString, quotes=False):
 			  "subcat": "6,41",
 			  "english": 1}
 	
-	searchURL = "http://services.nzbmatrix.com/rss.php?" + urllib.urlencode(params)
+	searchURL = "http://rss.nzbmatrix.com/rss.php?" + urllib.urlencode(params)
 
 	logger.log("Search string: " + searchURL, logger.DEBUG)
 
@@ -230,8 +230,11 @@ def _doSearch(curString, quotes=False):
 		title = curItem.findtext('title')
 		url = curItem.findtext('link')
 
+		if title == 'Error: No Results Found For Your Search':
+			continue
+
 		if not title or not url:
-			logger.log("The XML returned from the NZBMatrix RSS feed is incomplete, this result is unusable: "+data, logger.ERROR)
+			logger.log("The XML returned from the NZBMatrix RSS feed is incomplete, this result is unusable: "+searchResult, logger.ERROR)
 			continue
 
 		results.append(curItem)
@@ -277,7 +280,7 @@ class NZBMatrixCache(tvcache.TVCache):
 			return
 		
 		# get all records since the last timestamp
-		url = "http://services.nzbmatrix.com/rss.php?"
+		url = "http://rss.nzbmatrix.com/rss.php?"
 
 		urlArgs = {'page': 'download',
 				   'username': sickbeard.NZBMATRIX_USERNAME,

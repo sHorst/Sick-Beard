@@ -1583,7 +1583,7 @@ class Home:
         else:
 
             # just use the first result for now
-            logger.log("Downloading episode from " + foundEpisode.url + "<br />\n")
+            logger.log("Downloading episode from " + foundEpisode.url)
             result = search.snatchEpisode(foundEpisode)
             providerModule = providers.getProviderModule(foundEpisode.provider)
             if providerModule == None:
